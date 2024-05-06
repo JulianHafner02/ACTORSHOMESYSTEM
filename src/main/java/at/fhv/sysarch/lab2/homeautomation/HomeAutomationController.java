@@ -14,7 +14,7 @@ import at.fhv.sysarch.lab2.homeautomation.ui.UI;
 
 public class HomeAutomationController extends AbstractBehavior<Void>{
     private ActorRef<TemperatureSensor.TemperatureCommand> tempSensor;
-    private  ActorRef<AirCondition.AirConditionCommand> airCondition;
+    private ActorRef<AirCondition.AirConditionCommand> airCondition;
 
     public static Behavior<Void> create() {
         return Behaviors.setup(HomeAutomationController::new);

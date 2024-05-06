@@ -10,7 +10,7 @@ import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.AirCondition;
 import at.fhv.sysarch.lab2.homeautomation.devices.TemperatureSensor;
 
-import java.util.Optional;
+import java.time.Duration;
 import java.util.Scanner;
 
 public class UI extends AbstractBehavior<Void> {
@@ -22,14 +22,11 @@ public class UI extends AbstractBehavior<Void> {
         return Behaviors.setup(context -> new UI(context, tempSensor, airCondition));
     }
 
-    private  UI(ActorContext<Void> context, ActorRef<TemperatureSensor.TemperatureCommand> tempSensor, ActorRef<AirCondition.AirConditionCommand> airCondition) {
+    private UI(ActorContext<Void> context, ActorRef<TemperatureSensor.TemperatureCommand> tempSensor, ActorRef<AirCondition.AirConditionCommand> airCondition) {
         super(context);
-        // TODO: implement actor and behavior as needed
-        // TODO: move UI initialization to appropriate place
-        this.airCondition = airCondition;
         this.tempSensor = tempSensor;
-        new Thread(() -> { this.runCommandLine(); }).start();
-
+        this.airCondition = airCondition;
+        getContext().getSystem().scheduler().scheduleOnce(Duration.ofSeconds(1), this::runCommandLine, getContext().getSystem().executionContext());
         getContext().getLog().info("UI started");
     }
 
@@ -44,24 +41,25 @@ public class UI extends AbstractBehavior<Void> {
     }
 
     public void runCommandLine() {
-        // TODO: Create Actor for UI Input-Handling?
-        Scanner scanner = new Scanner(System.in);
-        String[] input = null;
-        String reader = "";
-
-
-        while (!reader.equalsIgnoreCase("quit") && scanner.hasNextLine()) {
-            reader = scanner.nextLine();
-            // TODO: change input handling
-            String[] command = reader.split(" ");
-            if(command[0].equals("t")) {
-                this.tempSensor.tell(new TemperatureSensor.ReadTemperature(Optional.of(Double.valueOf(command[1]))));
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (!Thread.currentThread().isInterrupted()) {
+                System.out.println("Enter command ('t <temperature>' or 'a <true/false>'): ");
+                if (scanner.hasNextLine()) {
+                    String input = scanner.nextLine();
+                    String[] parts = input.split(" ");
+                    try {
+                        if (parts[0].equalsIgnoreCase("t") && parts.length > 1) {
+                            double temperature = Double.parseDouble(parts[1]);
+                            tempSensor.tell(new TemperatureSensor.ReadTemperature(temperature));
+                        } else if (parts[0].equalsIgnoreCase("a") && parts.length > 1) {
+                            boolean powerState = Boolean.parseBoolean(parts[1]);
+                            airCondition.tell(new AirCondition.PowerAirCondition(powerState));
+                        }
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid input format.");
+                    }
+                }
             }
-            if(command[0].equals("a")) {
-                this.airCondition.tell(new AirCondition.PowerAirCondition(Optional.of(Boolean.valueOf(command[1]))));
-            }
-            // TODO: process Input
         }
-        getContext().getLog().info("UI done");
     }
 }

@@ -8,16 +8,14 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 
-import java.util.Optional;
-
 public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.TemperatureCommand> {
 
     public interface TemperatureCommand {}
 
     public static final class ReadTemperature implements TemperatureCommand {
-        final Optional<Double> value;
+        final double value;  // Use primitive type if value is always expected
 
-        public ReadTemperature(Optional<Double> value) {
+        public ReadTemperature(double value) {
             this.value = value;
         }
     }
@@ -28,7 +26,7 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Temper
 
     private final String groupId;
     private final String deviceId;
-    private ActorRef<AirCondition.AirConditionCommand> airCondition;
+    private final ActorRef<AirCondition.AirConditionCommand> airCondition;
 
     public TemperatureSensor(ActorContext<TemperatureCommand> context, ActorRef<AirCondition.AirConditionCommand> airCondition, String groupId, String deviceId) {
         super(context);
@@ -48,8 +46,8 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Temper
     }
 
     private Behavior<TemperatureCommand> onReadTemperature(ReadTemperature r) {
-        getContext().getLog().info("TemperatureSensor received {}", r.value.get());
-        this.airCondition.tell(new AirCondition.EnrichedTemperature(r.value, Optional.of("Celsius")));
+        getContext().getLog().info("TemperatureSensor received {}", r.value);
+        airCondition.tell(new AirCondition.EnrichedTemperature(r.value, "Celsius"));
         return this;
     }
 
@@ -57,5 +55,4 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Temper
         getContext().getLog().info("TemperatureSensor actor {}-{} stopped", groupId, deviceId);
         return this;
     }
-
 }

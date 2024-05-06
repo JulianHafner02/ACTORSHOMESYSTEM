@@ -2,39 +2,26 @@ package at.fhv.sysarch.lab2.homeautomation.devices;
 
 import akka.actor.typed.Behavior;
 import akka.actor.typed.PostStop;
-import akka.actor.typed.javadsl.AbstractBehavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.Receive;
+import akka.actor.typed.javadsl.*;
 
-/**
- * This class shows ONE way to switch behaviors in object-oriented style. Another approach is the use of static
- * methods for each behavior.
- *
- * The switching of behaviors is not strictly necessary for this example, but is rather used for demonstration
- * purpose only.
- *
- * For an example with functional-style please refer to: {@link https://doc.akka.io/docs/akka/current/typed/style-guide.html#functional-versus-object-oriented-style}
- *
- */
 import java.util.Optional;
 
 public class AirCondition extends AbstractBehavior<AirCondition.AirConditionCommand> {
     public interface AirConditionCommand {}
 
     public static final class PowerAirCondition implements AirConditionCommand {
-        final Optional<Boolean> value;
+        final boolean value; // No need for Optional here
 
-        public PowerAirCondition(Optional<Boolean> value) {
+        public PowerAirCondition(boolean value) {
             this.value = value;
         }
     }
 
     public static final class EnrichedTemperature implements AirConditionCommand {
-        Optional<Double> value;
-        Optional<String> unit;
+        double value;
+        String unit;
 
-        public EnrichedTemperature(Optional<Double> value, Optional<String> unit) {
+        public EnrichedTemperature(double value, String unit) {
             this.value = value;
             this.unit = unit;
         }
@@ -60,58 +47,27 @@ public class AirCondition extends AbstractBehavior<AirCondition.AirConditionComm
     public Receive<AirConditionCommand> createReceive() {
         return newReceiveBuilder()
                 .onMessage(EnrichedTemperature.class, this::onReadTemperature)
-                .onMessage(PowerAirCondition.class, this::onPowerAirConditionOff)
+                .onMessage(PowerAirCondition.class, this::onPowerAirCondition)
                 .onSignal(PostStop.class, signal -> onPostStop())
                 .build();
     }
 
     private Behavior<AirConditionCommand> onReadTemperature(EnrichedTemperature r) {
-        getContext().getLog().info("Aircondition reading {}", r.value.get());
-        // TODO: process temperature
-        if(r.value.get() >= 15) {
-            getContext().getLog().info("Aircondition actived");
-            this.active = true;
-        }
-        else {
-            getContext().getLog().info("Aircondition deactived");
-            this.active =  false;
-        }
-
-        return Behaviors.same();
-    }
-
-    private Behavior<AirConditionCommand> onPowerAirConditionOff(PowerAirCondition r) {
-        getContext().getLog().info("Turning Aircondition to {}", r.value);
-
-        if(r.value.get() == false) {
-            return this.powerOff();
-        }
+        getContext().getLog().info("Aircondition reading: Temp {} {}", r.value, r.unit);
+        // Implement better control logic here
+        active = r.value >= 15;
+        getContext().getLog().info("Aircondition {}", active ? "activated" : "deactivated");
         return this;
     }
 
-    private Behavior<AirConditionCommand> onPowerAirConditionOn(PowerAirCondition r) {
-        getContext().getLog().info("Turning Aircondition to {}", r.value);
-
-        if(r.value.get() == true) {
-            return Behaviors.receive(AirConditionCommand.class)
-                    .onMessage(EnrichedTemperature.class, this::onReadTemperature)
-                    .onMessage(PowerAirCondition.class, this::onPowerAirConditionOff)
-                    .onSignal(PostStop.class, signal -> onPostStop())
-                    .build();
-        }
+    private Behavior<AirConditionCommand> onPowerAirCondition(PowerAirCondition r) {
+        poweredOn = r.value;
+        getContext().getLog().info("Aircondition powered {}", poweredOn ? "on" : "off");
         return this;
-    }
-
-    private Behavior<AirConditionCommand> powerOff() {
-        this.poweredOn = false;
-        return Behaviors.receive(AirConditionCommand.class)
-                .onMessage(PowerAirCondition.class, this::onPowerAirConditionOn)
-                .onSignal(PostStop.class, signal -> onPostStop())
-                .build();
     }
 
     private AirCondition onPostStop() {
-        getContext().getLog().info("TemperatureSensor actor {}-{} stopped", groupId, deviceId);
+        getContext().getLog().info("AirCondition actor {}-{} stopped", groupId, deviceId);
         return this;
     }
 }
