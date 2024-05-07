@@ -3,6 +3,7 @@ package at.fhv.sysarch.lab2.homeautomation.devices;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.PostStop;
 import akka.actor.typed.javadsl.*;
+import at.fhv.sysarch.lab2.homeautomation.misc.Temperature;
 
 import java.util.Optional;
 
@@ -17,13 +18,11 @@ public class AirCondition extends AbstractBehavior<AirCondition.AirConditionComm
         }
     }
 
-    public static final class EnrichedTemperature implements AirConditionCommand {
-        double value;
-        String unit;
+    public static final class ReceivedTemperature implements AirConditionCommand {
+        private Temperature temperature;
 
-        public EnrichedTemperature(double value, String unit) {
-            this.value = value;
-            this.unit = unit;
+        public ReceivedTemperature(double value, String unit) {
+            this.temperature = new Temperature(value, unit);
         }
     }
 
@@ -46,16 +45,16 @@ public class AirCondition extends AbstractBehavior<AirCondition.AirConditionComm
     @Override
     public Receive<AirConditionCommand> createReceive() {
         return newReceiveBuilder()
-                .onMessage(EnrichedTemperature.class, this::onReadTemperature)
+                .onMessage(ReceivedTemperature.class, this::onReadTemperature)
                 .onMessage(PowerAirCondition.class, this::onPowerAirCondition)
                 .onSignal(PostStop.class, signal -> onPostStop())
                 .build();
     }
 
-    private Behavior<AirConditionCommand> onReadTemperature(EnrichedTemperature r) {
-        getContext().getLog().info("Aircondition reading: Temp {} {}", r.value, r.unit);
+    private Behavior<AirConditionCommand> onReadTemperature(ReceivedTemperature r) {
+        getContext().getLog().info("Aircondition reading: Temp {} {}", String.format("%.2f", r.temperature.getValue()), r.temperature.getUnit());
         // Implement better control logic here
-        active = r.value >= 15;
+        active = r.temperature.getValue() >= 15;
         getContext().getLog().info("Aircondition {}", active ? "activated" : "deactivated");
         return this;
     }

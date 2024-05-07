@@ -7,16 +7,17 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import at.fhv.sysarch.lab2.homeautomation.misc.Temperature;
 
 public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.TemperatureCommand> {
 
     public interface TemperatureCommand {}
 
     public static final class ReadTemperature implements TemperatureCommand {
-        final double value;  // Use primitive type if value is always expected
+        private Temperature temperature;
 
         public ReadTemperature(double value) {
-            this.value = value;
+            this.temperature = new Temperature(value, "Celsius");
         }
     }
 
@@ -46,8 +47,8 @@ public class TemperatureSensor extends AbstractBehavior<TemperatureSensor.Temper
     }
 
     private Behavior<TemperatureCommand> onReadTemperature(ReadTemperature r) {
-        getContext().getLog().info("TemperatureSensor received {}", r.value);
-        airCondition.tell(new AirCondition.EnrichedTemperature(r.value, "Celsius"));
+        getContext().getLog().info("TemperatureSensor received {} {}", String.format("%.2f", r.temperature.getValue()), r.temperature.getUnit());
+        airCondition.tell(new AirCondition.ReceivedTemperature(r.temperature.getValue(), r.temperature.getUnit()));
         return this;
     }
 
