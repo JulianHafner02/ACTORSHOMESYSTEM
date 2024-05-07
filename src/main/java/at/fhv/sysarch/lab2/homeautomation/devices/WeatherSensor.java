@@ -1,5 +1,6 @@
 package at.fhv.sysarch.lab2.homeautomation.devices;
 
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.PostStop;
 import akka.actor.typed.javadsl.AbstractBehavior;
@@ -21,19 +22,22 @@ public class WeatherSensor extends AbstractBehavior<WeatherSensor.WeatherCommand
         }
     }
 
-    public static Behavior<WeatherCommand> create(String groupId, String deviceId) {
-        return Behaviors.setup(context -> new WeatherSensor(context, groupId, deviceId));
+    public static Behavior<WeatherCommand> create(ActorRef<Blinds.BlindsCommand> blinds,String groupId, String deviceId ) {
+        return Behaviors.setup(context -> new WeatherSensor(context, groupId, deviceId, blinds));
     }
 
 
     private final String groupId;
     private final String deviceId;
 
+    private final ActorRef<Blinds.BlindsCommand> blinds;
 
-    public WeatherSensor(ActorContext<WeatherCommand> context, String groupId, String deviceId) {
+
+    public WeatherSensor(ActorContext<WeatherCommand> context, String groupId, String deviceId, ActorRef<Blinds.BlindsCommand> blinds) {
         super(context);
         this.groupId = groupId;
         this.deviceId = deviceId;
+        this.blinds = blinds;
 
         getContext().getLog().info("WeatherSensor started");
     }
@@ -48,6 +52,7 @@ public class WeatherSensor extends AbstractBehavior<WeatherSensor.WeatherCommand
 
     private Behavior<WeatherCommand> onReadWeather(ReadWeather r) {
         getContext().getLog().info("WeatherSensor received {}", r.weather);
+        blinds.tell(new Blinds.ReceiveWeather(r.weather));
         return this;
     }
 

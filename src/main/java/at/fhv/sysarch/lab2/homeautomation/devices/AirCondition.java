@@ -11,7 +11,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.AirConditionComm
     public interface AirConditionCommand {}
 
     public static final class PowerAirCondition implements AirConditionCommand {
-        final boolean value; // No need for Optional here
+        final boolean value;
 
         public PowerAirCondition(boolean value) {
             this.value = value;
@@ -29,7 +29,7 @@ public class AirCondition extends AbstractBehavior<AirCondition.AirConditionComm
     private final String groupId;
     private final String deviceId;
     private boolean active = false;
-    private boolean poweredOn = true;
+    private boolean poweredOn = false;
 
     public AirCondition(ActorContext<AirConditionCommand> context, String groupId, String deviceId) {
         super(context);
@@ -52,10 +52,17 @@ public class AirCondition extends AbstractBehavior<AirCondition.AirConditionComm
     }
 
     private Behavior<AirConditionCommand> onReadTemperature(ReceivedTemperature r) {
-        getContext().getLog().info("Aircondition reading: Temp {} {}", String.format("%.2f", r.temperature.getValue()), r.temperature.getUnit());
-        // Implement better control logic here
-        active = r.temperature.getValue() >= 15;
-        getContext().getLog().info("Aircondition {}", active ? "activated" : "deactivated");
+        if (poweredOn) {
+            getContext().getLog().info("Aircondition reading: Temp {} {}", String.format("%.2f", r.temperature.getValue()), r.temperature.getUnit());
+            if (r.temperature.getValue() > 20.0) {
+                active = true;
+                getContext().getLog().info("Aircondition is cooling");
+
+            } else {
+                active = false;
+                getContext().getLog().info("Aircondition deactivated");
+            }
+        }
         return this;
     }
 
