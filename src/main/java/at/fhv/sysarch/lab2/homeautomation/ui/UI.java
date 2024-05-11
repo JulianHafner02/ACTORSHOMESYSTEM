@@ -8,7 +8,8 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
 import at.fhv.sysarch.lab2.homeautomation.devices.*;
-import at.fhv.sysarch.lab2.homeautomation.environment.Environment;
+import at.fhv.sysarch.lab2.homeautomation.environment.TemperatureEnvironment;
+import at.fhv.sysarch.lab2.homeautomation.environment.WeatherEnvironment;
 import at.fhv.sysarch.lab2.homeautomation.misc.Weather;
 
 import java.time.Duration;
@@ -17,18 +18,22 @@ import java.util.Scanner;
 public class UI extends AbstractBehavior<Void> {
 
     private final ActorRef<AirCondition.AirConditionCommand> airCondition;
-    private final ActorRef<Environment.EnvironmentCommand> environment;
+    private final ActorRef<WeatherEnvironment.WeatherEnvironmentCommand> weatherEnvironment;
+    private final ActorRef<TemperatureEnvironment.TemperatureEnvironmentCommand> tempEnvironment;
     private final ActorRef<MediaStation.MediaStationCommand> mediaStation;
+    private TemperatureEnvironment.TemperatureChanged temperatureChanged;
 
-    public static Behavior<Void> create( ActorRef<AirCondition.AirConditionCommand> airCondition, ActorRef<Environment.EnvironmentCommand> environment, ActorRef<MediaStation.MediaStationCommand> mediaStation) {
-        return Behaviors.setup(context -> new UI(context, airCondition, environment, mediaStation));
+    public static Behavior<Void> create( ActorRef<AirCondition.AirConditionCommand> airCondition, ActorRef<WeatherEnvironment.WeatherEnvironmentCommand> weatherEnvironment, ActorRef<TemperatureEnvironment.TemperatureEnvironmentCommand> tempEnvironment, ActorRef<MediaStation.MediaStationCommand> mediaStation, TemperatureEnvironment.TemperatureChanged temperatureChanged) {
+        return Behaviors.setup(context -> new UI(context, airCondition, weatherEnvironment, tempEnvironment, mediaStation, temperatureChanged));
     }
 
-    private UI(ActorContext<Void> context, ActorRef<AirCondition.AirConditionCommand> airCondition, ActorRef<Environment.EnvironmentCommand> environment, ActorRef<MediaStation.MediaStationCommand> mediaStation) {
+    private UI(ActorContext<Void> context, ActorRef<AirCondition.AirConditionCommand> airCondition, ActorRef<WeatherEnvironment.WeatherEnvironmentCommand> weatherEnvironment, ActorRef<TemperatureEnvironment.TemperatureEnvironmentCommand> tempEnvironment, ActorRef<MediaStation.MediaStationCommand> mediaStation, TemperatureEnvironment.TemperatureChanged temperatureChanged) {
         super(context);
         this.airCondition = airCondition;
-        this.environment = environment;
+        this.weatherEnvironment = weatherEnvironment;
+        this.tempEnvironment = tempEnvironment;
         this.mediaStation = mediaStation;
+        this.temperatureChanged = temperatureChanged;
         getContext().getSystem().scheduler().scheduleOnce(Duration.ofSeconds(1), this::runCommandLine, getContext().getSystem().executionContext());
         getContext().getLog().info("UI started");
     }
@@ -53,13 +58,14 @@ public class UI extends AbstractBehavior<Void> {
                     try {
                         if (parts[0].equalsIgnoreCase("t") && parts.length > 1) {
                             double temperature = Double.parseDouble(parts[1]);
-                            environment.tell(new Environment.TemperatureEnvironment(temperature));
+                            this.temperatureChanged.setChangedTemperature(temperature);
+                            tempEnvironment.tell(this.temperatureChanged);
                         } else if (parts[0].equalsIgnoreCase("a") && parts.length > 1) {
                             boolean powerState = Boolean.parseBoolean(parts[1]);
                             airCondition.tell(new AirCondition.PowerAirCondition(powerState));
                         } else if (parts[0].equalsIgnoreCase("w") && parts.length > 1) {
                             Weather weather = Weather.valueOf(parts[1].toUpperCase());
-                            environment.tell(new Environment.WeatherEnvironment(weather));
+                            weatherEnvironment.tell(new WeatherEnvironment.WeatherChanged(weather));
                         }
                         else if (parts[0].equalsIgnoreCase("mp") && parts.length > 1) {
                             boolean powerOn = Boolean.parseBoolean(parts[1]);
