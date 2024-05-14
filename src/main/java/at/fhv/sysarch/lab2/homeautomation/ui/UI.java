@@ -57,14 +57,14 @@ public class UI extends AbstractBehavior<Void> {
     public void runCommandLine() {
         try (Scanner scanner = new Scanner(System.in)) {
             while (!Thread.currentThread().isInterrupted()) {
-                System.out.println("Enter command ('temperature <value>', 'aircon <true/false>', 'weather <type>', 'mediap <true/false>', 'mediamovie <true/false>', 'consume <product>', 'order <product>', 'fridgelist', 'orderhistory'): ");
+                System.out.println("Enter command ('temp <value>', 'aircon <true/false>', 'weather <type>', 'mediapower <true/false>', 'mediamovie <true/false>', 'consume <product>', 'order <product>', 'fridgelist', 'orderhistory'): ");
                 if (scanner.hasNextLine()) {
                     String input = scanner.nextLine();
                     String[] parts = input.split(" ");
                     try {
                         if (parts.length > 0) {
                             switch (parts[0].toLowerCase()) {
-                                case "temperature":
+                                case "temp":
                                     if (parts.length > 1) {
                                         double temperature = Double.parseDouble(parts[1]);
                                         this.temperatureChanged.setChangedTemperature(temperature);
@@ -89,7 +89,7 @@ public class UI extends AbstractBehavior<Void> {
                                         System.err.println("Weather type is missing.");
                                     }
                                     break;
-                                case "mediap":
+                                case "mediapower":
                                     if (parts.length > 1) {
                                         boolean powerOn = Boolean.parseBoolean(parts[1]);
                                         mediaStation.tell(new MediaStation.PowerOn(powerOn));
