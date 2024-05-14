@@ -1,5 +1,6 @@
 package at.fhv.sysarch.lab2.homeautomation.fridge;
 
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
@@ -26,6 +27,13 @@ public class FridgeWeightSensor extends AbstractBehavior<FridgeWeightSensor.Frid
         }
     }
 
+    public static final class GetAvailableWeight implements FridgeWeightSensorCommand {
+        private ActorRef<OrderProcessor.OrderProcessorCommand> orderProcessor;
+        public GetAvailableWeight(ActorRef<OrderProcessor.OrderProcessorCommand> orderProcessor) {
+            this.orderProcessor = orderProcessor;
+        }
+    }
+
     private final String groupId;
     private final String deviceId;
     private final int maxWeight = 3500;
@@ -47,19 +55,25 @@ public class FridgeWeightSensor extends AbstractBehavior<FridgeWeightSensor.Frid
         return newReceiveBuilder()
                 .onMessage(AddProductWeight.class, this::onAddProductWeight)
                 .onMessage(RemoveProductWeight.class, this::onRemoveProductWeight)
+                .onMessage(GetAvailableWeight.class, this::onGetAvailableWeight)
                 .onSignal(PostStop.class, signal -> onPostStop())
                 .build();
     }
 
     private Behavior<FridgeWeightSensorCommand> onAddProductWeight(AddProductWeight a) {
         currentWeight += a.product.getWeight();
-        getContext().getLog().info("FridgeWeightSensor received {}", currentWeight);
+        getContext().getLog().info("FridgeWeightSensor received {} current weight", currentWeight);
         return this;
     }
 
     private Behavior<FridgeWeightSensorCommand> onRemoveProductWeight(RemoveProductWeight a) {
         currentWeight -= a.product.getWeight();
-        getContext().getLog().info("FridgeWeightSensor received {}", currentWeight);
+        getContext().getLog().info("FridgeWeightSensor received {} current weight", currentWeight);
+        return this;
+    }
+
+    private Behavior<FridgeWeightSensorCommand> onGetAvailableWeight(GetAvailableWeight a) {
+        a.orderProcessor.tell(new OrderProcessor.AvailableWeight(maxWeight-currentWeight));
         return this;
     }
 

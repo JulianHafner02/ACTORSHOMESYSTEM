@@ -36,7 +36,7 @@ public class WeatherEnvironment extends AbstractBehavior<WeatherEnvironment.Weat
     private WeatherEnvironment(ActorContext<WeatherEnvironmentCommand> context, TimerScheduler<WeatherEnvironmentCommand> weatherTimerScheduler, ActorRef<WeatherSensor.WeatherCommand> weatherSensor) {
         super(context);
         this.weatherTimerScheduler = weatherTimerScheduler;
-        this.weatherTimerScheduler.startTimerAtFixedRate(new WeatherChanged(currentWeather), Duration.ofSeconds(10));
+        this.weatherTimerScheduler.startTimerAtFixedRate(new WeatherChanged(currentWeather), Duration.ofSeconds(20));
         this.weatherSensor = weatherSensor;
     }
 

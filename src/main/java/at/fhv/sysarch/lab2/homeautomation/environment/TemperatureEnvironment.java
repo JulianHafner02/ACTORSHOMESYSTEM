@@ -37,7 +37,7 @@ public class TemperatureEnvironment extends AbstractBehavior<TemperatureEnvironm
         super(context);
         this.temperatureTimerScheduler = temperatureTimerScheduler;
         this.temperatureChanged = temperatureChanged;
-        this.temperatureTimerScheduler.startTimerAtFixedRate(this.temperatureChanged, Duration.ofSeconds(5));
+        this.temperatureTimerScheduler.startTimerAtFixedRate(this.temperatureChanged, Duration.ofSeconds(10));
         this.tempSensor = tempSensor;
     }
 

@@ -57,40 +57,86 @@ public class UI extends AbstractBehavior<Void> {
     public void runCommandLine() {
         try (Scanner scanner = new Scanner(System.in)) {
             while (!Thread.currentThread().isInterrupted()) {
-                System.out.println("Enter command ('t <temperature>' or 'a <true/false>'): ");
+                System.out.println("Enter command ('temperature <value>', 'aircon <true/false>', 'weather <type>', 'mediap <true/false>', 'mediamovie <true/false>', 'consume <product>', 'order <product>', 'fridgelist', 'orderhistory'): ");
                 if (scanner.hasNextLine()) {
                     String input = scanner.nextLine();
                     String[] parts = input.split(" ");
                     try {
-                        if (parts[0].equalsIgnoreCase("t") && parts.length > 1) {
-                            double temperature = Double.parseDouble(parts[1]);
-                            this.temperatureChanged.setChangedTemperature(temperature);
-                            tempEnvironment.tell(this.temperatureChanged);
-                        } else if (parts[0].equalsIgnoreCase("a") && parts.length > 1) {
-                            boolean powerState = Boolean.parseBoolean(parts[1]);
-                            airCondition.tell(new AirCondition.PowerAirCondition(powerState));
-                        } else if (parts[0].equalsIgnoreCase("w") && parts.length > 1) {
-                            Weather weather = Weather.valueOf(parts[1].toUpperCase());
-                            weatherEnvironment.tell(new WeatherEnvironment.WeatherChanged(weather));
-                        }
-                        else if (parts[0].equalsIgnoreCase("mp") && parts.length > 1) {
-                            boolean powerOn = Boolean.parseBoolean(parts[1]);
-                            mediaStation.tell(new MediaStation.PowerOn(powerOn));
-                        }
-                        else if (parts[0].equalsIgnoreCase("mm") && parts.length > 1) {
-                            boolean playMovie = Boolean.parseBoolean(parts[1]);
-                            mediaStation.tell(new MediaStation.PlayMovie(playMovie));
-                        }
-                        else if (parts[0].equalsIgnoreCase("fr") && parts.length > 1) {
-                            String productName = parts[1];
-                            Product product = ProductFactory.createProduct(productName);
-                            fridge.tell(new Fridge.RemoveProduct(product));
-                        }
-                        else if (parts[0].equalsIgnoreCase("fl") && parts.length == 1) {
-                            fridge.tell(new Fridge.ListProducts());
+                        if (parts.length > 0) {
+                            switch (parts[0].toLowerCase()) {
+                                case "temperature":
+                                    if (parts.length > 1) {
+                                        double temperature = Double.parseDouble(parts[1]);
+                                        this.temperatureChanged.setChangedTemperature(temperature);
+                                        tempEnvironment.tell(this.temperatureChanged);
+                                    } else {
+                                        System.err.println("Temperature value is missing.");
+                                    }
+                                    break;
+                                case "aircon":
+                                    if (parts.length > 1) {
+                                        boolean powerState = Boolean.parseBoolean(parts[1]);
+                                        airCondition.tell(new AirCondition.PowerAirCondition(powerState));
+                                    } else {
+                                        System.err.println("Power state is missing.");
+                                    }
+                                    break;
+                                case "weather":
+                                    if (parts.length > 1) {
+                                        Weather weather = Weather.valueOf(parts[1].toUpperCase());
+                                        weatherEnvironment.tell(new WeatherEnvironment.WeatherChanged(weather));
+                                    } else {
+                                        System.err.println("Weather type is missing.");
+                                    }
+                                    break;
+                                case "mediap":
+                                    if (parts.length > 1) {
+                                        boolean powerOn = Boolean.parseBoolean(parts[1]);
+                                        mediaStation.tell(new MediaStation.PowerOn(powerOn));
+                                    } else {
+                                        System.err.println("Power state for media station is missing.");
+                                    }
+                                    break;
+                                case "mediamovie":
+                                    if (parts.length > 1) {
+                                        boolean playMovie = Boolean.parseBoolean(parts[1]);
+                                        mediaStation.tell(new MediaStation.PlayMovie(playMovie));
+                                    } else {
+                                        System.err.println("Play state for movie is missing.");
+                                    }
+                                    break;
+                                case "consume":
+                                    if (parts.length > 1) {
+                                        String productName = parts[1];
+                                        Product product = ProductFactory.createProduct(productName);
+                                        fridge.tell(new Fridge.ConsumeProduct(product));
+                                    } else {
+                                        System.err.println("Product name is missing.");
+                                    }
+                                    break;
+                                case "order":
+                                    if (parts.length > 1) {
+                                        String productName = parts[1];
+                                        Product product = ProductFactory.createProduct(productName);
+                                        fridge.tell(new Fridge.RequestOrder(product));
+                                    } else {
+                                        System.err.println("Product name is missing.");
+                                    }
+                                    break;
+                                case "fridgelist":
+                                    fridge.tell(new Fridge.ListProducts());
+                                    break;
+                                case "orderhistory":
+                                    fridge.tell(new Fridge.ListOrders());
+                                    break;
+                                default:
+                                    System.err.println("Invalid command.");
+                            }
                         }
                     } catch (NumberFormatException e) {
-                        System.err.println("Invalid input format.");
+                        System.err.println("Invalid input format for numerical values.");
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Invalid input for weather or product name.");
                     }
                 }
             }

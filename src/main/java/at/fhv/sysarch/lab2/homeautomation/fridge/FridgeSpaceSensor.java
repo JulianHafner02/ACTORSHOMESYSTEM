@@ -1,5 +1,6 @@
 package at.fhv.sysarch.lab2.homeautomation.fridge;
 
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
@@ -26,6 +27,13 @@ public class FridgeSpaceSensor extends AbstractBehavior<FridgeSpaceSensor.Fridge
         }
     }
 
+    public static final class GetAvailableSpace implements FridgeSpaceSensorCommand {
+        private ActorRef<OrderProcessor.OrderProcessorCommand> orderProcessor;
+        public GetAvailableSpace(ActorRef<OrderProcessor.OrderProcessorCommand> orderProcessor) {
+            this.orderProcessor = orderProcessor;
+        }
+    }
+
     private final String groupId;
     private final String deviceId;
     private final int maxSpace = 35;
@@ -47,19 +55,25 @@ public class FridgeSpaceSensor extends AbstractBehavior<FridgeSpaceSensor.Fridge
         return newReceiveBuilder()
                 .onMessage(AddProductSpace.class, this::onAddProductSpace)
                 .onMessage(RemoveProductSpace.class, this::onRemoveProductSpace)
+                .onMessage(GetAvailableSpace.class, this::onGetAvailableSpace)
                 .onSignal(PostStop.class, signal -> onPostStop())
                 .build();
     }
 
     private Behavior<FridgeSpaceSensorCommand> onAddProductSpace(AddProductSpace a) {
         currentSpace += a.product.getSpace();
-        getContext().getLog().info("FridgeSpaceSensor received {}", currentSpace);
+        getContext().getLog().info("FridgeSpaceSensor received {} current space", currentSpace);
         return this;
     }
 
     private Behavior<FridgeSpaceSensorCommand> onRemoveProductSpace(RemoveProductSpace a) {
         currentSpace -= a.product.getSpace();
-        getContext().getLog().info("FridgeSpaceSensor received {}", currentSpace);
+        getContext().getLog().info("FridgeSpaceSensor received {} current space", currentSpace);
+        return this;
+    }
+
+    private Behavior<FridgeSpaceSensorCommand> onGetAvailableSpace(GetAvailableSpace a) {
+        a.orderProcessor.tell(new OrderProcessor.AvailableSpace(maxSpace - currentSpace));
         return this;
     }
 
